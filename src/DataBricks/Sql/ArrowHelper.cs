@@ -15,14 +15,22 @@ namespace DataBricks.Sql
 {
     public static class ArrowHelper
     {
-        public static async IAsyncEnumerable<DataFrame> GetRecordBatchesAsync(TRowSet rowSet, byte[] arrowSchema, bool isCompressed, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public static async IAsyncEnumerable<object[]> GetRowsAsync(TRowSet rowSet, byte[] arrowSchema, bool isCompressed, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             using var arrowStreamReader = GetArrowStreamReader(rowSet, arrowSchema, isCompressed);
             var recordBatch = await arrowStreamReader.ReadNextRecordBatchAsync(cancellationToken);
             while (recordBatch != null)
             {
                 var df = ArrowHelper.RecordBatchToDataFrame(recordBatch);
-                yield return df;
+                
+                foreach (var row in df.Rows)
+                {
+                    var e = new object[row.Count()];
+                    var index = 0;
+                    foreach (var col in row)  e[index++] = col;
+                    yield return e;
+                }
+                
                 recordBatch = await arrowStreamReader.ReadNextRecordBatchAsync(cancellationToken);
             }
         }
@@ -51,23 +59,24 @@ namespace DataBricks.Sql
 
         private static byte[] UnCompress(TRowSet rowSet, byte[] arrowSchema)
         {
-            var tasks = new List<Task<byte[]>>();
+            var tasks = new Task<byte[]>[rowSet.ArrowBatches.Count];
+            var i = 0;
             foreach (var arrowBatch in rowSet.ArrowBatches)
             {
-                tasks.Add(Task<byte[]>.Factory.StartNew((o) => LZ4Utility.Decompress((byte[])o), arrowBatch.Batch));
+                tasks[i++] = Task<byte[]>.Factory.StartNew((o) => LZ4Utility.Decompress((byte[])o), arrowBatch.Batch);
             }
 
-            var taskArray = tasks.ToArray();
-            Task.WaitAll(taskArray);
-            var size = arrowSchema.Length + taskArray.Sum(task => task.Result.Length);
-            var data = new byte[size];
+            Task.WaitAll(tasks);
+            
+            var arraySize = arrowSchema.Length + tasks.Sum(task => task.Result.Length);
+            var data = new byte[arraySize];
             arrowSchema.CopyTo(data, 0);
-            var index = arrowSchema.Length;
+            var arrayOffset = arrowSchema.Length;
 
-            foreach (var task in taskArray)
+            foreach (var task in tasks)
             {
-                task.Result.CopyTo(data, index);
-                index += task.Result.Length;
+                task.Result.CopyTo(data, arrayOffset);
+                arrayOffset += task.Result.Length;
             }
 
             return data;

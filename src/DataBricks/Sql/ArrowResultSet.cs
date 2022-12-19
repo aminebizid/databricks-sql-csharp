@@ -67,37 +67,28 @@ namespace DataBricks.Sql
         private async Task<int> ArrowToQueueAsync(TRowSet rowSet,
             CancellationToken cancellationToken = default)
         {
-            var counter = 0;
-            await foreach (var df in ArrowHelper.GetRecordBatchesAsync(rowSet, _arrowSchema, _isCompressed, cancellationToken))
-            {
-                counter += FillQueue(df);
-            }
 
-            if (HasMoreRows) return counter;
+            var buffer = new List<object[]>();
+            
+            await foreach (var row in ArrowHelper.GetRowsAsync(rowSet, _arrowSchema, _isCompressed, cancellationToken))
+                buffer.Add(row);
+
+            var count = buffer.Count();
+
+            if (count > 0)
+                lock (_queue)
+                {
+                    foreach (var row in buffer)
+                        _queue.Enqueue(new QueueMessage { Row = row });
+                }
+
+            if (HasMoreRows) return count;
             lock (_queue)
             {
                 _queue.Enqueue(new QueueMessage{Stop = true});
             }
 
-            return counter;
+            return count;
         }
-
-        private int FillQueue(DataFrame df)
-        {
-            var counter = 0;
-            lock (_queue)
-            {
-                foreach (var row in df.Rows)
-                {
-                    var e = new object[row.Count()];
-                    var index = 0;
-                    foreach (var col in row)  e[index++] = col;
-                    _queue.Enqueue(new QueueMessage { Row = e });
-                    counter++;
-                }
-            }
-            return counter;
-        }
-        
     }
 }
