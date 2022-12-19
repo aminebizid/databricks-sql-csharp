@@ -52,9 +52,9 @@ namespace DataBricks.Sql
 
             if (sessionConfiguration != null)
             {
-                foreach (var kv in sessionConfiguration)
+                foreach (var (key, value) in sessionConfiguration)
                 {
-                    sessionConfig[kv.Key] = kv.Value.ToString();
+                    sessionConfig[key] = value.ToString();
                 }
             }
 

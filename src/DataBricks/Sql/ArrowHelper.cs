@@ -22,25 +22,33 @@ namespace DataBricks.Sql
             var recordBatch = await arrowStreamReader.ReadNextRecordBatchAsync(cancellationToken);
             while (recordBatch != null)
             {
-                var df = ArrowHelper.RecordBatchToDataFrame(recordBatch);
-
-                lock (queue)
-                {
-                    foreach (var row in df.Rows)
-                    {
-                        var e = new object[row.Count()];
-                        var index = 0;
-                        foreach (var col in row)  e[index++] = col;
-                        queue.Enqueue(new QueueMessage{Row = e});
-                        count++;
-                    }
-                }
-               
-                
+                count += BatchToQueue(queue, recordBatch);
                 recordBatch = await arrowStreamReader.ReadNextRecordBatchAsync(cancellationToken);
             }
 
             return count;
+        }
+
+        private static int BatchToQueue(Queue<QueueMessage> queue, RecordBatch recordBatch)
+        {
+            var df = ArrowHelper.RecordBatchToDataFrame(recordBatch);
+            var count = 0;
+
+            lock (queue)
+            {
+                foreach (var row in df.Rows)
+                {
+                    var e = new object[row.Count()];
+                    var index = 0;
+                    foreach (var col in row)  e[index++] = col;
+                    queue.Enqueue(new QueueMessage{Row = e});
+                    count++;
+                }
+            }
+
+            return count;
+
+
         }
         private static ArrowStreamReader GetArrowStreamReader(TRowSet rowSet, byte[] arrowSchema, bool isCompressed)
         {
@@ -107,106 +115,89 @@ namespace DataBricks.Sql
 
             return df;
         }
-        
+
+       
          private static DataFrameColumn MakeColumn(IArrowArray arrowArray, Field field)
         {   
             
             var dataType = field.DataType;
             var name = field.Name;
-            DataFrameColumn dataFrameColumn = (DataFrameColumn) null;
             switch (dataType.TypeId)
-          {
-            case ArrowTypeId.Boolean:
-              BooleanArray booleanArray = (BooleanArray) arrowArray;
-              ReadOnlyMemory<byte> memory1 = booleanArray.ValueBuffer.Memory;
-              ReadOnlyMemory<byte> memory2 = booleanArray.NullBitmapBuffer.Memory;
-              dataFrameColumn = (DataFrameColumn) new BooleanDataFrameColumn(name, memory1, memory2, arrowArray.Length, arrowArray.NullCount);
-              break;
-            case ArrowTypeId.UInt8:
-              PrimitiveArray<byte> primitiveArray1 = (PrimitiveArray<byte>) arrowArray;
-              ReadOnlyMemory<byte> memory3 = primitiveArray1.ValueBuffer.Memory;
-              ReadOnlyMemory<byte> memory4 = primitiveArray1.NullBitmapBuffer.Memory;
-              dataFrameColumn = (DataFrameColumn) new ByteDataFrameColumn(name, memory3, memory4, arrowArray.Length, arrowArray.NullCount);
-              break;
-            case ArrowTypeId.Int8:
-              PrimitiveArray<sbyte> primitiveArray2 = (PrimitiveArray<sbyte>) arrowArray;
-              ReadOnlyMemory<byte> memory5 = primitiveArray2.ValueBuffer.Memory;
-              ReadOnlyMemory<byte> memory6 = primitiveArray2.NullBitmapBuffer.Memory;
-              dataFrameColumn = (DataFrameColumn) new SByteDataFrameColumn(name, memory5, memory6, arrowArray.Length, arrowArray.NullCount);
-              break;
-            case ArrowTypeId.UInt16:
-              PrimitiveArray<ushort> primitiveArray3 = (PrimitiveArray<ushort>) arrowArray;
-              ReadOnlyMemory<byte> memory7 = primitiveArray3.ValueBuffer.Memory;
-              ReadOnlyMemory<byte> memory8 = primitiveArray3.NullBitmapBuffer.Memory;
-              dataFrameColumn = (DataFrameColumn) new UInt16DataFrameColumn(name, memory7, memory8, arrowArray.Length, arrowArray.NullCount);
-              break;
-            case ArrowTypeId.Int16:
-              PrimitiveArray<short> primitiveArray4 = (PrimitiveArray<short>) arrowArray;
-              ReadOnlyMemory<byte> memory9 = primitiveArray4.ValueBuffer.Memory;
-              ReadOnlyMemory<byte> memory10 = primitiveArray4.NullBitmapBuffer.Memory;
-              dataFrameColumn = (DataFrameColumn) new Int16DataFrameColumn(name, memory9, memory10, arrowArray.Length, arrowArray.NullCount);
-              break;
-            case ArrowTypeId.UInt32:
-              PrimitiveArray<uint> primitiveArray5 = (PrimitiveArray<uint>) arrowArray;
-              ReadOnlyMemory<byte> memory11 = primitiveArray5.ValueBuffer.Memory;
-              ReadOnlyMemory<byte> memory12 = primitiveArray5.NullBitmapBuffer.Memory;
-              dataFrameColumn = (DataFrameColumn) new UInt32DataFrameColumn(name, memory11, memory12, arrowArray.Length, arrowArray.NullCount);
-              break;
-            case ArrowTypeId.Int32:
-              PrimitiveArray<int> primitiveArray6 = (PrimitiveArray<int>) arrowArray;
-              ReadOnlyMemory<byte> memory13 = primitiveArray6.ValueBuffer.Memory;
-              ReadOnlyMemory<byte> memory14 = primitiveArray6.NullBitmapBuffer.Memory;
-              dataFrameColumn = (DataFrameColumn) new Int32DataFrameColumn(name, memory13, memory14, arrowArray.Length, arrowArray.NullCount);
-              break;
-            case ArrowTypeId.UInt64:
-              PrimitiveArray<ulong> primitiveArray7 = (PrimitiveArray<ulong>) arrowArray;
-              ReadOnlyMemory<byte> memory15 = primitiveArray7.ValueBuffer.Memory;
-              ReadOnlyMemory<byte> memory16 = primitiveArray7.NullBitmapBuffer.Memory;
-              dataFrameColumn = (DataFrameColumn) new UInt64DataFrameColumn(name, memory15, memory16, arrowArray.Length, arrowArray.NullCount);
-              break;
-            case ArrowTypeId.Int64:
-              PrimitiveArray<long> primitiveArray8 = (PrimitiveArray<long>) arrowArray;
-              ReadOnlyMemory<byte> memory17 = primitiveArray8.ValueBuffer.Memory;
-              ReadOnlyMemory<byte> memory18 = primitiveArray8.NullBitmapBuffer.Memory;
-              dataFrameColumn = (DataFrameColumn) new Int64DataFrameColumn(name, memory17, memory18, arrowArray.Length, arrowArray.NullCount);
-              break;
-            case ArrowTypeId.Float:
-              PrimitiveArray<float> primitiveArray9 = (PrimitiveArray<float>) arrowArray;
-              ReadOnlyMemory<byte> memory19 = primitiveArray9.ValueBuffer.Memory;
-              ReadOnlyMemory<byte> memory20 = primitiveArray9.NullBitmapBuffer.Memory;
-              dataFrameColumn = (DataFrameColumn) new SingleDataFrameColumn(name, memory19, memory20, arrowArray.Length, arrowArray.NullCount);
-              break;
-            case ArrowTypeId.Double:
-              PrimitiveArray<double> primitiveArray10 = (PrimitiveArray<double>) arrowArray;
-              ReadOnlyMemory<byte> memory21 = primitiveArray10.ValueBuffer.Memory;
-              ReadOnlyMemory<byte> memory22 = primitiveArray10.NullBitmapBuffer.Memory;
-              dataFrameColumn = (DataFrameColumn) new DoubleDataFrameColumn(name, memory21, memory22, arrowArray.Length, arrowArray.NullCount);
-              break;
-            case ArrowTypeId.String:
-                  var stringArray = (StringArray) arrowArray;
-                  var memory23 = stringArray.ValueBuffer.Memory;
-                  ArrowBuffer arrowBuffer = stringArray.ValueOffsetsBuffer;
-                  ReadOnlyMemory<byte> memory24 = arrowBuffer.Memory;
-                  arrowBuffer = stringArray.NullBitmapBuffer;
-                  ReadOnlyMemory<byte> memory25 = arrowBuffer.Memory;
-                  dataFrameColumn = new ArrowStringDataFrameColumn(name, memory23, memory24, memory25, stringArray.Length, stringArray.NullCount);
-                  break;
-            
-            case ArrowTypeId.Timestamp: 
-                var primitiveArray11 = (PrimitiveArray<long>) arrowArray;
-                var memory26 = primitiveArray11.ValueBuffer.Memory;
-                var memory27 = primitiveArray11.NullBitmapBuffer.Memory;
-                dataFrameColumn = new UInt64DataFrameColumn(name, memory26, memory27, arrowArray.Length, arrowArray.NullCount);
-                break;
+            {
+                case ArrowTypeId.Boolean:
+                  var booleanArray = (BooleanArray) arrowArray;
+                  var memory1 = booleanArray.ValueBuffer.Memory;
+                  var memory2 = booleanArray.NullBitmapBuffer.Memory;
+                  return new BooleanDataFrameColumn(name, memory1, memory2, arrowArray.Length, arrowArray.NullCount);
+                case ArrowTypeId.UInt8:
+                  var primitiveArray1 = (PrimitiveArray<byte>) arrowArray;
+                  var memory3 = primitiveArray1.ValueBuffer.Memory;
+                  var memory4 = primitiveArray1.NullBitmapBuffer.Memory;
+                  return new ByteDataFrameColumn(name, memory3, memory4, arrowArray.Length, arrowArray.NullCount);
+                case ArrowTypeId.Int8:
+                  var primitiveArray2 = (PrimitiveArray<sbyte>) arrowArray;
+                  var memory5 = primitiveArray2.ValueBuffer.Memory;
+                  var memory6 = primitiveArray2.NullBitmapBuffer.Memory;
+                  return new SByteDataFrameColumn(name, memory5, memory6, arrowArray.Length, arrowArray.NullCount);
+                case ArrowTypeId.UInt16:
+                  var primitiveArray3 = (PrimitiveArray<ushort>) arrowArray;
+                  var memory7 = primitiveArray3.ValueBuffer.Memory;
+                  var memory8 = primitiveArray3.NullBitmapBuffer.Memory;
+                  return new UInt16DataFrameColumn(name, memory7, memory8, arrowArray.Length, arrowArray.NullCount);
+                case ArrowTypeId.Int16:
+                  var primitiveArray4 = (PrimitiveArray<short>) arrowArray;
+                  var memory9 = primitiveArray4.ValueBuffer.Memory;
+                  var memory10 = primitiveArray4.NullBitmapBuffer.Memory;
+                  return new Int16DataFrameColumn(name, memory9, memory10, arrowArray.Length, arrowArray.NullCount);
+                case ArrowTypeId.UInt32:
+                  var primitiveArray5 = (PrimitiveArray<uint>) arrowArray;
+                  var memory11 = primitiveArray5.ValueBuffer.Memory;
+                  var memory12 = primitiveArray5.NullBitmapBuffer.Memory;
+                  return new UInt32DataFrameColumn(name, memory11, memory12, arrowArray.Length, arrowArray.NullCount);
+                case ArrowTypeId.Int32:
+                  var primitiveArray6 = (PrimitiveArray<int>) arrowArray;
+                  var memory13 = primitiveArray6.ValueBuffer.Memory;
+                  var memory14 = primitiveArray6.NullBitmapBuffer.Memory;
+                  return new Int32DataFrameColumn(name, memory13, memory14, arrowArray.Length, arrowArray.NullCount);
+                case ArrowTypeId.UInt64:
+                  var primitiveArray7 = (PrimitiveArray<ulong>) arrowArray;
+                  var memory15 = primitiveArray7.ValueBuffer.Memory;
+                  var memory16 = primitiveArray7.NullBitmapBuffer.Memory;
+                  return new UInt64DataFrameColumn(name, memory15, memory16, arrowArray.Length, arrowArray.NullCount);
+                case ArrowTypeId.Int64:
+                  var primitiveArray8 = (PrimitiveArray<long>) arrowArray;
+                  var memory17 = primitiveArray8.ValueBuffer.Memory;
+                  var memory18 = primitiveArray8.NullBitmapBuffer.Memory;
+                  return new Int64DataFrameColumn(name, memory17, memory18, arrowArray.Length, arrowArray.NullCount);
+                case ArrowTypeId.Float:
+                  var primitiveArray9 = (PrimitiveArray<float>) arrowArray;
+                  var memory19 = primitiveArray9.ValueBuffer.Memory;
+                  var memory20 = primitiveArray9.NullBitmapBuffer.Memory;
+                  return new SingleDataFrameColumn(name, memory19, memory20, arrowArray.Length, arrowArray.NullCount);
+                case ArrowTypeId.Double:
+                  var primitiveArray10 = (PrimitiveArray<double>) arrowArray;
+                  var memory21 = primitiveArray10.ValueBuffer.Memory;
+                  var memory22 = primitiveArray10.NullBitmapBuffer.Memory;
+                  return new DoubleDataFrameColumn(name, memory21, memory22, arrowArray.Length, arrowArray.NullCount);
+                case ArrowTypeId.String:
+                      var stringArray = (StringArray) arrowArray;
+                      var memory23 = stringArray.ValueBuffer.Memory;
+                      var arrowBuffer = stringArray.ValueOffsetsBuffer;
+                      var memory24 = arrowBuffer.Memory;
+                      arrowBuffer = stringArray.NullBitmapBuffer;
+                      var memory25 = arrowBuffer.Memory;
+                      return new ArrowStringDataFrameColumn(name, memory23, memory24, memory25, stringArray.Length, stringArray.NullCount);
+                
+                case ArrowTypeId.Timestamp: 
+                    var primitiveArray11 = (PrimitiveArray<long>) arrowArray;
+                    var memory26 = primitiveArray11.ValueBuffer.Memory;
+                    var memory27 = primitiveArray11.NullBitmapBuffer.Memory;
+                    return new UInt64DataFrameColumn(name, memory26, memory27, arrowArray.Length, arrowArray.NullCount);
 
-            default:
-              throw new NotImplementedException(dataType.Name ?? "");
+                default:
+                  throw new NotImplementedException(dataType.Name ?? "");
           }
 
-          return dataFrameColumn;
         }
-
-        
-
     }
 }

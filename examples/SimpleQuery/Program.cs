@@ -29,7 +29,7 @@ namespace Examples.SimpleQuery
 
             await connection.OpenAsync(cancellationToken);
             var cursor = connection.GetCursor(arraySize: 100000, canReadArrowResult: true, canReadCompressed: true);
-            const string sql = "select * from gemdownstreamwattsonvolumesfranpd.fr_series_power_metering_offtake_10t where year_month='202212' limit 100000";
+            const string sql = "select * from gemdownstreamwattsonvolumesfranpd.fr_series_power_metering_offtake_10t where year_month='202212' limit 13850";
 
             var sw = new Stopwatch();
             sw.Start();
@@ -49,7 +49,7 @@ namespace Examples.SimpleQuery
             var count = 0;
             await foreach (var row in cursor.GetRowAsync(cancellationToken:cancellationToken))
             {
-                // Console.WriteLine($"{row[0]}");
+                Console.WriteLine($"{row[0]}");
                 count++;
             }
             sw.Stop();
