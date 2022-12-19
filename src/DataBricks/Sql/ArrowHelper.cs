@@ -15,24 +15,32 @@ namespace DataBricks.Sql
 {
     public static class ArrowHelper
     {
-        public static async IAsyncEnumerable<object[]> GetRowsAsync(TRowSet rowSet, byte[] arrowSchema, bool isCompressed, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public static async Task<int> FillQueueAsync(TRowSet rowSet, byte[] arrowSchema, bool isCompressed, Queue<QueueMessage> queue, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
+            var count = 0;
             using var arrowStreamReader = GetArrowStreamReader(rowSet, arrowSchema, isCompressed);
             var recordBatch = await arrowStreamReader.ReadNextRecordBatchAsync(cancellationToken);
             while (recordBatch != null)
             {
                 var df = ArrowHelper.RecordBatchToDataFrame(recordBatch);
-                
-                foreach (var row in df.Rows)
+
+                lock (queue)
                 {
-                    var e = new object[row.Count()];
-                    var index = 0;
-                    foreach (var col in row)  e[index++] = col;
-                    yield return e;
+                    foreach (var row in df.Rows)
+                    {
+                        var e = new object[row.Count()];
+                        var index = 0;
+                        foreach (var col in row)  e[index++] = col;
+                        queue.Enqueue(new QueueMessage{Row = e});
+                        count++;
+                    }
                 }
+               
                 
                 recordBatch = await arrowStreamReader.ReadNextRecordBatchAsync(cancellationToken);
             }
+
+            return count;
         }
         private static ArrowStreamReader GetArrowStreamReader(TRowSet rowSet, byte[] arrowSchema, bool isCompressed)
         {

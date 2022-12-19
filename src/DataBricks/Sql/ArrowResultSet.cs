@@ -1,9 +1,7 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DataBricks.Sql.ThriftApi.TCLService.TTypes;
-using Microsoft.Data.Analysis;
 
 namespace DataBricks.Sql
 {
@@ -67,21 +65,8 @@ namespace DataBricks.Sql
         private async Task<int> ArrowToQueueAsync(TRowSet rowSet,
             CancellationToken cancellationToken = default)
         {
-
-            var buffer = new List<object[]>();
-            
-            await foreach (var row in ArrowHelper.GetRowsAsync(rowSet, _arrowSchema, _isCompressed, cancellationToken))
-                buffer.Add(row);
-
-            var count = buffer.Count();
-
-            if (count > 0)
-                lock (_queue)
-                {
-                    foreach (var row in buffer)
-                        _queue.Enqueue(new QueueMessage { Row = row });
-                }
-
+            var count = await ArrowHelper.FillQueueAsync(rowSet, _arrowSchema, _isCompressed, _queue, cancellationToken);
+           
             if (HasMoreRows) return count;
             lock (_queue)
             {
