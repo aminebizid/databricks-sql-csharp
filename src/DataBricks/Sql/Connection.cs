@@ -71,9 +71,9 @@ namespace DataBricks.Sql
             
         }
 
-        public Cursor GetCursor(int BufferSizeByte = 10485760, int arraySize = 100000, bool canReadArrowResult = false, bool canReadCompressed = false)
+        public Cursor GetCursor(int BufferSizeByte = 10485760, int mawRows = 100000, bool canReadArrowResult = false, bool canReadCompressed = false)
         {
-            var cursor = new Cursor(this, _thriftBackend, BufferSizeByte, arraySize, canReadArrowResult, compressed: canReadCompressed);
+            var cursor = new Cursor(this, _thriftBackend, BufferSizeByte, mawRows, canReadArrowResult, compressed: canReadCompressed);
             _cursors.Add(cursor);
             
             return cursor;

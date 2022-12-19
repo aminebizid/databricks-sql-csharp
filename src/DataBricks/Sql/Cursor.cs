@@ -17,7 +17,7 @@ namespace DataBricks.Sql
         private IResultSet _activeResultSet;
 
         private string _operation;
-        private readonly Queue<QueueMessage> _queue = new ();
+        private readonly Queue<object[]> _queue;
         private readonly bool _canReadArrowResult;
         private readonly bool _compressed;
 
@@ -37,6 +37,7 @@ namespace DataBricks.Sql
             _canReadArrowResult = canReadArrowResult;
             _compressed = compressed;
             _isOpen = true;
+            _queue = new Queue<object[]>(arraySize + 1);
         }
 
         public async Task ExecuteAsync(string operation, CancellationToken cancellationToken = default)
@@ -49,24 +50,43 @@ namespace DataBricks.Sql
             CheckIfNoteClosed();
             await CloseAndClearActiveResultSetAsync(cancellationToken);
 
-            var executeResponse = await _thriftBackend.ExecuteCommandAsync(
-                _operation,
-                _connection.SessionHandler,
-                _arraySize,
-                _resultBufferSizeByte,
-                _compressed,
-                canReadArrowResult: _canReadArrowResult,
-                cancellationToken
-            );
-
+            ExecuteResponse executeResponse;
+            try
+            {
+                executeResponse = await _thriftBackend.ExecuteCommandAsync(
+                    _operation,
+                    _connection.SessionHandler,
+                    _arraySize,
+                    _resultBufferSizeByte,
+                    _compressed,
+                    canReadArrowResult: _canReadArrowResult,
+                    cancellationToken
+                );
+            }
+            catch
+            {
+                await _connection.CloseSessionAsync(cancellationToken);
+                await _connection.OpenAsync(cancellationToken);
+                
+                executeResponse = await _thriftBackend.ExecuteCommandAsync(
+                    _operation,
+                    _connection.SessionHandler,
+                    _arraySize,
+                    _resultBufferSizeByte,
+                    _compressed,
+                    canReadArrowResult: _canReadArrowResult,
+                    cancellationToken
+                );
+            }
+           
+            // In this case, the warehouse sent us a response but without results
+            // We need to call back the warehouse to fetch the first results batch
             if (executeResponse.Results == null)
             {
                 var resp  = await _thriftBackend.FetchResultsAsync(executeResponse.CommandHandle, _arraySize, _resultBufferSizeByte, 0, cancellationToken);
                 executeResponse.Results = resp.Results;
                 executeResponse.HasMoreRows = resp.HasMoreRows;
             }
-
-       
 
             if (executeResponse.Results.Columns != null)
             {
@@ -81,6 +101,7 @@ namespace DataBricks.Sql
             if (_activeResultSet == null)
                 throw new Exception("No ResultSet");
             
+            // Fetch all remaining results in a background
             if (_activeResultSet.HasMoreRows)
                 Task.Factory.StartNew( async () => _activeResultSet.GetRemainingAsync(),
                     TaskCreationOptions.LongRunning).ConfigureAwait(false);
@@ -103,7 +124,7 @@ namespace DataBricks.Sql
                     throw new Exception("Timeout");
                 }
                 bool found;
-                QueueMessage rowMessage;
+                object[] rowMessage;
                 lock (_queue)
                 {
                     found = _queue.TryDequeue(out rowMessage);
@@ -115,14 +136,14 @@ namespace DataBricks.Sql
                     continue;
                 }
 
-                if (rowMessage.Stop)
+                if (rowMessage == null)
                 {
                     sw.Stop();
                     yield break;
                 }
                 
                 sw.Restart();
-                yield return rowMessage.Row;
+                yield return rowMessage;
             }
         }
 

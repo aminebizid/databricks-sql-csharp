@@ -26,9 +26,9 @@ namespace DataBricks.Sql
         private TTableSchema _schema;
         private object[][] _arrayRows;
         private List<Func<TColumn, (IList, byte[])>> _lambdas;
-        private readonly Queue<QueueMessage> _queue;
+        private readonly Queue<object[]> _queue;
 
-        public ColumnsResultSet(Connection connection, ExecuteResponse executeResponse, ThriftBackend thriftBackend, int bufferSizeByte, int arraySize, Queue<QueueMessage> queue)
+        public ColumnsResultSet(Connection connection, ExecuteResponse executeResponse, ThriftBackend thriftBackend, int bufferSizeByte, int arraySize, Queue<object[]> queue)
         {
             _connection = connection;
             _commandId = executeResponse.CommandHandle;
@@ -86,9 +86,9 @@ namespace DataBricks.Sql
             {
                 foreach (var row in _arrayRows)
                 {
-                    _queue.Enqueue(new QueueMessage{Row = row, Stop = false});
+                    _queue.Enqueue(row);
                 }
-                if (!HasMoreRows) _queue.Enqueue(new QueueMessage{Stop = true});
+                if (!HasMoreRows) _queue.Enqueue(null);
             }
 
             _arrayRows = null;

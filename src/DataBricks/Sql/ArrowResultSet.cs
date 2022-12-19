@@ -15,13 +15,13 @@ namespace DataBricks.Sql
         private readonly int _arraySize;
         private readonly ThriftBackend _thriftBackend;
         private int _nextRowIndex;
-        private readonly Queue<QueueMessage> _queue;
+        private readonly Queue<object[]> _queue;
         private readonly byte[] _arrowSchema;
         private readonly bool _isCompressed;
         public bool HasMoreRows { get; set; }
 
         public ArrowResultSet(Connection connection, ExecuteResponse executeResponse, ThriftBackend thriftBackend,
-            int bufferSizeByte, int arraySize, Queue<QueueMessage> queue)
+            int bufferSizeByte, int arraySize, Queue<object[]> queue)
         {
             _connection = connection;
             _commandId = executeResponse.CommandHandle;
@@ -70,7 +70,7 @@ namespace DataBricks.Sql
             if (HasMoreRows) return count;
             lock (_queue)
             {
-                _queue.Enqueue(new QueueMessage{Stop = true});
+                _queue.Enqueue(null);
             }
 
             return count;

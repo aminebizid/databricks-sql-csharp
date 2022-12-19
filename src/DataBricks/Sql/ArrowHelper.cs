@@ -15,7 +15,7 @@ namespace DataBricks.Sql
 {
     public static class ArrowHelper
     {
-        public static async Task<int> FillQueueAsync(TRowSet rowSet, byte[] arrowSchema, bool isCompressed, Queue<QueueMessage> queue, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public static async Task<int> FillQueueAsync(TRowSet rowSet, byte[] arrowSchema, bool isCompressed, Queue<object[]> queue, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var count = 0;
             using var arrowStreamReader = GetArrowStreamReader(rowSet, arrowSchema, isCompressed);
@@ -29,7 +29,7 @@ namespace DataBricks.Sql
             return count;
         }
 
-        private static int BatchToQueue(Queue<QueueMessage> queue, RecordBatch recordBatch)
+        private static int BatchToQueue(Queue<object[]> queue, RecordBatch recordBatch)
         {
             var df = ArrowHelper.RecordBatchToDataFrame(recordBatch);
             var count = 0;
@@ -41,7 +41,7 @@ namespace DataBricks.Sql
                     var e = new object[row.Count()];
                     var index = 0;
                     foreach (var col in row)  e[index++] = col;
-                    queue.Enqueue(new QueueMessage{Row = e});
+                    queue.Enqueue(e);
                     count++;
                 }
             }
