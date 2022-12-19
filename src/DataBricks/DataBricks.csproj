@@ -5,6 +5,12 @@
         <LangVersion>9</LangVersion>
         <RootNamespace>DataBricks</RootNamespace>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageId>dbx-sql-csharp</PackageId>
+        <Authors>Amine BIZID</Authors>
+        <Company />
+        <Product>dbx-sql-csharp</Product>
+        <AssemblyVersion>0.0.1</AssemblyVersion>
     </PropertyGroup>
 
     <ItemGroup>
