@@ -14,10 +14,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Apache.Arrow" Version="10.0.1" />
-      <PackageReference Include="ApacheThrift" Version="0.17.0" />
-      <PackageReference Include="IonKiwi.lz4.managed" Version="1.0.7" />
-      <PackageReference Include="Microsoft.Data.Analysis" Version="0.20.1-preview.22573.9" />
+        <PackageReference Include="Apache.Arrow" Version="10.0.1" />
+        <PackageReference Include="ApacheThrift" Version="0.17.0" />
+        <PackageReference Include="IonKiwi.lz4.managed" Version="1.0.7" />
+        <PackageReference Include="Microsoft.Data.Analysis" Version="0.20.1-preview.22573.9" />
     </ItemGroup>
     
 

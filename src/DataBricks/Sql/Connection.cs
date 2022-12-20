@@ -56,7 +56,7 @@ namespace DataBricks.Sql
 
         }
 
-        public async Task OpenAsync(CancellationToken cancellationToken)
+        public async Task OpenAsync(CancellationToken cancellationToken = default)
         {
             _thriftBackend = new ThriftBackend(
                 _hostname,

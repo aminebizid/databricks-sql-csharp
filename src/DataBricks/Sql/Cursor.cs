@@ -48,34 +48,16 @@ namespace DataBricks.Sql
             CheckIfNoteClosed();
             await CloseAndClearActiveResultSetAsync(cancellationToken);
 
-            ExecuteResponse executeResponse;
-            try
-            {
-                executeResponse = await _thriftBackend.ExecuteCommandAsync(
-                    operation,
-                    _connection.SessionHandler,
-                    _arraySize,
-                    _resultBufferSizeByte,
-                    _compressed,
-                    canReadArrowResult: _canReadArrowResult,
-                    cancellationToken
-                );
-            }
-            catch
-            {
-                await _connection.ReOpenAsync(cancellationToken);
-                
-                executeResponse = await _thriftBackend.ExecuteCommandAsync(
-                    operation,
-                    _connection.SessionHandler,
-                    _arraySize,
-                    _resultBufferSizeByte,
-                    _compressed,
-                    canReadArrowResult: _canReadArrowResult,
-                    cancellationToken
-                );
-            }
-           
+            var executeResponse = await _thriftBackend.ExecuteCommandAsync(
+                operation,
+                _connection.SessionHandler,
+                _arraySize,
+                _resultBufferSizeByte,
+                _compressed,
+                canReadArrowResult: _canReadArrowResult,
+                cancellationToken
+            );
+       
             // In this case, the warehouse sent us a response but without results
             // We need to call back the warehouse to fetch the first results batch
             if (executeResponse.Results == null)
