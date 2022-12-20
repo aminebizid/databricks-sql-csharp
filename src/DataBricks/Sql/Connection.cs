@@ -16,7 +16,6 @@ namespace DataBricks.Sql
         private readonly AccessTokenAuthProvider _authProvider;
         private ThriftBackend _thriftBackend;
         public TSessionHandle SessionHandler;
-        private List<Cursor> _cursors = new ();
         private readonly string _httpPath;
         private readonly Dictionary<string, string> _headers;
         private readonly string _catalog;
@@ -73,10 +72,13 @@ namespace DataBricks.Sql
 
         public Cursor GetCursor(int BufferSizeByte = 10485760, int mawRows = 100000, bool canReadArrowResult = false, bool canReadCompressed = false)
         {
-            var cursor = new Cursor(this, _thriftBackend, BufferSizeByte, mawRows, canReadArrowResult, compressed: canReadCompressed);
-            _cursors.Add(cursor);
-            
-            return cursor;
+            return new Cursor(this, _thriftBackend, BufferSizeByte, mawRows, canReadArrowResult, compressed: canReadCompressed);
+        }
+
+        public async Task ReOpenAsync(CancellationToken cancellationToken)
+        {
+            await CloseSessionAsync(cancellationToken);
+            await OpenAsync(cancellationToken);
         }
 
         public async Task CloseSessionAsync(CancellationToken cancellationToken = default)

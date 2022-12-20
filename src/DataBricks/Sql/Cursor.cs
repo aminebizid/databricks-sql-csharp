@@ -16,7 +16,6 @@ namespace DataBricks.Sql
         private bool _isOpen;
         private IResultSet _activeResultSet;
 
-        private string _operation;
         private readonly Queue<object[]> _queue;
         private readonly bool _canReadArrowResult;
         private readonly bool _compressed;
@@ -46,7 +45,6 @@ namespace DataBricks.Sql
             {
                 _queue.Clear();
             }
-            _operation = operation;
             CheckIfNoteClosed();
             await CloseAndClearActiveResultSetAsync(cancellationToken);
 
@@ -54,7 +52,7 @@ namespace DataBricks.Sql
             try
             {
                 executeResponse = await _thriftBackend.ExecuteCommandAsync(
-                    _operation,
+                    operation,
                     _connection.SessionHandler,
                     _arraySize,
                     _resultBufferSizeByte,
@@ -65,11 +63,10 @@ namespace DataBricks.Sql
             }
             catch
             {
-                await _connection.CloseSessionAsync(cancellationToken);
-                await _connection.OpenAsync(cancellationToken);
+                await _connection.ReOpenAsync(cancellationToken);
                 
                 executeResponse = await _thriftBackend.ExecuteCommandAsync(
-                    _operation,
+                    operation,
                     _connection.SessionHandler,
                     _arraySize,
                     _resultBufferSizeByte,
