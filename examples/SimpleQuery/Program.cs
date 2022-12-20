@@ -29,7 +29,7 @@ namespace Examples.SimpleQuery
 
             await connection.OpenAsync(cancellationToken);
             
-            const string sql = "select * from gemdownstreamwattsonvolumesfranpd.fr_series_power_metering_offtake_10t where year_month='202212' limit 100000";
+            const string sql = "select * from db.table where year_month='202212' limit 100000";
 
             var sw = new Stopwatch();
             sw.Start();
