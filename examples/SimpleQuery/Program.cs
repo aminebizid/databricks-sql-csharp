@@ -36,7 +36,7 @@ namespace Examples.SimpleQuery
             var count = 0;
             
             using (var cursor =
-                connection.GetCursor(mawRows: 100000, canReadArrowResult: true, canReadCompressed: true))
+                connection.GetCursor(maxRows: 100000, canReadArrowResult: true, canReadCompressed: true))
             {
                
                 try
