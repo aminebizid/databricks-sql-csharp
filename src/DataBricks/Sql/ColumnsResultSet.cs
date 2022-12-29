@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,9 +27,9 @@ namespace DataBricks.Sql
         private TTableSchema _schema;
         private object[][] _arrayRows;
         private List<Func<TColumn, (IList, byte[])>> _lambdas;
-        private readonly Queue<object[]> _queue;
+        private readonly ConcurrentQueue<object[]> _queue;
 
-        public ColumnsResultSet(Connection connection, ExecuteResponse executeResponse, ThriftBackend thriftBackend, int bufferSizeByte, int arraySize, Queue<object[]> queue)
+        public ColumnsResultSet(Connection connection, ExecuteResponse executeResponse, ThriftBackend thriftBackend, int bufferSizeByte, int arraySize, ConcurrentQueue<object[]> queue)
         {
             _connection = connection;
             _commandId = executeResponse.CommandHandle;
@@ -82,14 +83,11 @@ namespace DataBricks.Sql
 
         private void FillQueue()
         {
-            lock (_queue)
+            foreach (var row in _arrayRows)
             {
-                foreach (var row in _arrayRows)
-                {
-                    _queue.Enqueue(row);
-                }
-                if (!HasMoreRows) _queue.Enqueue(null);
+                _queue.Enqueue(row);
             }
+            if (!HasMoreRows) _queue.Enqueue(null);
 
             _arrayRows = null;
 

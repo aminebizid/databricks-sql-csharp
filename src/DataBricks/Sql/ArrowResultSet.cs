@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,13 +16,13 @@ namespace DataBricks.Sql
         private readonly int _arraySize;
         private readonly ThriftBackend _thriftBackend;
         private int _nextRowIndex;
-        private readonly Queue<object[]> _queue;
+        private readonly ConcurrentQueue<object[]> _queue;
         private readonly byte[] _arrowSchema;
         private readonly bool _isCompressed;
         public bool HasMoreRows { get; set; }
 
         public ArrowResultSet(Connection connection, ExecuteResponse executeResponse, ThriftBackend thriftBackend,
-            int bufferSizeByte, int arraySize, Queue<object[]> queue)
+            int bufferSizeByte, int arraySize, ConcurrentQueue<object[]> queue)
         {
             _connection = connection;
             _commandId = executeResponse.CommandHandle;
@@ -68,10 +69,7 @@ namespace DataBricks.Sql
             var count = await ArrowHelper.FillQueueAsync(rowSet, _arrowSchema, _isCompressed, _queue, cancellationToken);
            
             if (HasMoreRows) return count;
-            lock (_queue)
-            {
-                _queue.Enqueue(null);
-            }
+            _queue.Enqueue(null);
 
             return count;
         }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -16,7 +17,7 @@ namespace DataBricks.Sql
         private bool _isOpen;
         private IResultSet _activeResultSet;
 
-        private readonly Queue<object[]> _queue;
+        private readonly ConcurrentQueue<object[]> _queue;
         private readonly bool _canReadArrowResult;
         private readonly bool _compressed;
 
@@ -36,15 +37,12 @@ namespace DataBricks.Sql
             _canReadArrowResult = canReadArrowResult;
             _compressed = compressed;
             _isOpen = true;
-            _queue = new Queue<object[]>(arraySize + 1);
+            _queue = new ConcurrentQueue<object[]>();
         }
 
         public async Task ExecuteAsync(string operation, CancellationToken cancellationToken = default)
         {
-            lock (_queue)
-            {
-                _queue.Clear();
-            }
+            _queue.Clear();
             CheckIfNoteClosed();
             await CloseAndClearActiveResultSetAsync(cancellationToken);
 
@@ -67,7 +65,7 @@ namespace DataBricks.Sql
                 executeResponse.HasMoreRows = resp.HasMoreRows;
             }
 
-            if (executeResponse.Results.Columns != null)
+            if (executeResponse.Results?.Columns != null)
             {
                 _activeResultSet = new ColumnsResultSet(_connection, executeResponse, _thriftBackend, _resultBufferSizeByte, _arraySize, _queue);
             }
@@ -104,10 +102,7 @@ namespace DataBricks.Sql
                 }
                 bool found;
                 object[] rowMessage;
-                lock (_queue)
-                {
-                    found = _queue.TryDequeue(out rowMessage);
-                }
+                found = _queue.TryDequeue(out rowMessage);
               
                 if (!found)
                 {

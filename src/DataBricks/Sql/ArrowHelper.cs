@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -15,7 +16,7 @@ namespace DataBricks.Sql
 {
     public static class ArrowHelper
     {
-        public static async Task<int> FillQueueAsync(TRowSet rowSet, byte[] arrowSchema, bool isCompressed, Queue<object[]> queue, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public static async Task<int> FillQueueAsync(TRowSet rowSet, byte[] arrowSchema, bool isCompressed, ConcurrentQueue<object[]> queue, CancellationToken cancellationToken = default)
         {
             var count = 0;
             using var arrowStreamReader = GetArrowStreamReader(rowSet, arrowSchema, isCompressed);
@@ -29,21 +30,18 @@ namespace DataBricks.Sql
             return count;
         }
 
-        private static int BatchToQueue(Queue<object[]> queue, RecordBatch recordBatch)
+        private static int BatchToQueue(ConcurrentQueue<object[]> queue, RecordBatch recordBatch)
         {
             var df = ArrowHelper.RecordBatchToDataFrame(recordBatch);
             var count = 0;
 
-            lock (queue)
+            foreach (var row in df.Rows)
             {
-                foreach (var row in df.Rows)
-                {
-                    var e = new object[row.Count()];
-                    var index = 0;
-                    foreach (var col in row)  e[index++] = col;
-                    queue.Enqueue(e);
-                    count++;
-                }
+                var e = new object[row.Count()];
+                var index = 0;
+                foreach (var col in row)  e[index++] = col;
+                queue.Enqueue(e);
+                count++;
             }
 
             return count;
