@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using DataBricks.Sql;
 using DataBricks.Sql.Auth;
 
-namespace Examples.SimpleQuery
+namespace SimpleQuery
 {
     internal static class Program
     {
