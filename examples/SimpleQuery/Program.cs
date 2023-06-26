@@ -47,7 +47,7 @@ namespace SimpleQuery
          ";
             
             sql = @"select metering_point_code, timestamp_utc, value 
-                    from gemdownstreamwattsonvolumesfranpd.fr_series_power_metering_offtake_10t 
+                    from gemdownstreamwattsonvolumesfrprd.fr_series_power_metering_offtake_10t 
                     where year_month in ('202303', '202304', '202305') and metering_point_code='57020003' and expiration_datetime > '9999-01-01' 
          ";
 
