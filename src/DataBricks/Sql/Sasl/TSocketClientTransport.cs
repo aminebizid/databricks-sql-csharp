@@ -3,10 +3,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Thrift.Transport;
-using TTransportException = DataBricks.Sql.Sasl.TTransportException;
 
-namespace Airlock.Hive.ThriftClient.Sasl
+namespace DataBricks.Sql.Sasl
 {
     public class TSocketClientTransport : TStreamClientTransport
     {

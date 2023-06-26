@@ -13,12 +13,10 @@
 // limitations under the License.
 
 using System;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using DataBricks.Sql.Sasl;
 
-namespace Airlock.Hive.ThriftClient.Sasl
+namespace DataBricks.Sql.Sasl
 {
     class TMemoryInputTransport : TClientTransport
     {

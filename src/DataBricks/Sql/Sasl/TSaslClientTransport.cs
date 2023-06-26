@@ -17,7 +17,6 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Airlock.Hive.ThriftClient.Sasl;
 using Thrift;
 using Thrift.Transport;
 using static DataBricks.Sql.Sasl.EndianEncoding;

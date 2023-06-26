@@ -12,19 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Airlock.Hive.ThriftClient.Sasl
+namespace DataBricks.Sql.Sasl
 {
     public class SaslNegotiator
     {
-        private readonly PlainMechanism mechanism;
+        private readonly PlainMechanism _mechanism;
 
         public SaslNegotiator(PlainMechanism mechanism)
         {
-            this.mechanism = mechanism;
+            this._mechanism = mechanism;
             MechanismName = mechanism.Name;
         }
 
@@ -32,7 +31,7 @@ namespace Airlock.Hive.ThriftClient.Sasl
 
         public byte[] RespondToChallenge(byte[] challenge)
         {
-            return mechanism.RespondToChallenge(challenge);
+            return _mechanism.RespondToChallenge(challenge);
         }
     }
 

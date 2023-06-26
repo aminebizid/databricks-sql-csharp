@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Airlock.Hive.ThriftClient.Sasl;
 using DataBricks.Sql.Sasl;
 using Thrift.Transport;
 

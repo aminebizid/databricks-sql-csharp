@@ -15,7 +15,6 @@
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using DataBricks.Sql.Sasl;
 using Thrift.Transport;
 
 namespace DataBricks.Sql.ThriftConnection
