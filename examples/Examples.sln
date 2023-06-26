@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataBricks", "..\src\DataBricks\DataBricks.csproj", "{48694E9E-D93C-4983-AEB2-93186F07EBB3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HiveClient", "..\src\HiveClient\HiveClient.csproj", "{48694E9E-D93C-4983-AEB2-93186F07EBB3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleQuery", "SimpleQuery\SimpleQuery.csproj", "{E4601E31-9E2C-48B5-8B42-580372566DA2}"
 EndProject

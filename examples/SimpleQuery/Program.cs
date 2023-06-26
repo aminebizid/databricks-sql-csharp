@@ -2,8 +2,8 @@
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using DataBricks.Sql;
-using DataBricks.Sql.Auth;
+using HiveClient.Sql;
+using HiveClient.Sql.Auth;
 
 namespace SimpleQuery
 {
@@ -48,7 +48,7 @@ namespace SimpleQuery
             
             sql = @"select metering_point_code, timestamp_utc, value 
                     from gemdownstreamwattsonvolumesfranpd.fr_series_power_metering_offtake_10t 
-                    where year_month='202303' and metering_point_code='57020003' and expiration_datetime > '9999-01-01' 
+                    where year_month in ('202303', '202304', '202305') and metering_point_code='57020003' and expiration_datetime > '9999-01-01' 
          ";
 
             var sw = new Stopwatch();

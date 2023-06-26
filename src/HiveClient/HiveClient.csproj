@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <LangVersion>9</LangVersion>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageId>dbx-sql-csharp</PackageId>
+        <Authors>Amine BIZID</Authors>
+        <Company />
+        <Product>dbx-sql-csharp</Product>
+        <AssemblyVersion>0.0.6</AssemblyVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Apache.Arrow" Version="12.0.1" />
+        <PackageReference Include="ApacheThrift" Version="0.18.1" />
+        <PackageReference Include="IonKiwi.lz4.managed" Version="1.0.7" />
+        <PackageReference Include="Microsoft.Data.Analysis" Version="0.20.1" />
+    </ItemGroup>
+    
+
+</Project>
