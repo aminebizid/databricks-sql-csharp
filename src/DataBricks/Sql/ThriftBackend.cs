@@ -5,7 +5,9 @@ using System.Threading.Tasks;
 using DataBricks.Sql.Auth;
 using DataBricks.Sql.Auth.ThriftHttpClient;
 using DataBricks.Sql.ThriftApi.TCLService.TTypes;
+using DataBricks.Sql.ThriftConnection;
 using Thrift.Protocol;
+using Thrift.Transport;
 using Thrift.Transport.Client;
 
 namespace DataBricks.Sql
@@ -24,8 +26,7 @@ namespace DataBricks.Sql
 
         private readonly Dictionary<string,object> _customParameters;
         private readonly Dictionary<string, double> _retryParameters = new ();
-        private readonly THttpClient _transport;
-        private TSocketTransport _socketTransport;
+        private readonly TTransport _transport;
         private readonly TCLIService.Client _client;
 
         public ThriftBackend(
@@ -37,11 +38,18 @@ namespace DataBricks.Sql
             string scheme = "https",
             Dictionary<string, object> customParameters = null)
         {
-            var uri = new Uri($"{scheme}://{hostname}:{port}/{httpPath}");
-            _customParameters = customParameters;
-            _transport = new THttpClient(authProvider, uri, headers);
-            _transport.SetCustomHeaders(headers);
+
+            var thriftConnectionFactory = new SaslConnectionFactory(hostname, 10000, "amine", "bizid");
+            _transport = thriftConnectionFactory.CreateTransport();
             var protocol = new TBinaryProtocol(_transport);
+            
+            
+            
+            // var uri = new Uri($"{scheme}://{hostname}:{port}/{httpPath}");
+            // _customParameters = customParameters;
+            // _transport = new THttpClient(authProvider, uri, headers);
+            // _transport.SetCustomHeaders(headers);
+            // var protocol = new TBinaryProtocol(_transport);
             _client = new TCLIService.Client(protocol, protocol);
         }
 
