@@ -13,7 +13,9 @@
 // limitations under the License.
 
 using DataBricks.Sql.Sasl;
+using Thrift;
 using Thrift.Transport;
+using Thrift.Transport.Client;
 
 namespace DataBricks.Sql.ThriftConnection
 {
@@ -41,7 +43,7 @@ namespace DataBricks.Sql.ThriftConnection
         internal override TTransport CreateTransport()
         {
             var ipAddress = ResolveHost(Host);
-            var socket = new TSocketClientTransport(ipAddress, Port);
+            var socket = new TSocketTransport(ipAddress, Port, new TConfiguration());
             return new TSaslClientTransport(socket, Username, Password);
         }
     }

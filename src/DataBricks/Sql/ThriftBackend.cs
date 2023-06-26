@@ -3,12 +3,10 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using DataBricks.Sql.Auth;
-using DataBricks.Sql.Auth.ThriftHttpClient;
 using DataBricks.Sql.ThriftApi.TCLService.TTypes;
 using DataBricks.Sql.ThriftConnection;
 using Thrift.Protocol;
 using Thrift.Transport;
-using Thrift.Transport.Client;
 
 namespace DataBricks.Sql
 {

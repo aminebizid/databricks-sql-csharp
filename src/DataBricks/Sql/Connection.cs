@@ -74,7 +74,7 @@ namespace DataBricks.Sql
             
         }
 
-        public Cursor GetCursor(int BufferSizeByte = 10485760, int maxRows = 100000, bool canReadArrowResult = false, bool canReadCompressed = false)
+        public Cursor GetCursor(int BufferSizeByte = 10485760, int maxRows = 100000, bool canReadArrowResult = true, bool canReadCompressed = true)
         {
             return new Cursor(this, _thriftBackend, BufferSizeByte, maxRows, canReadArrowResult, compressed: canReadCompressed);
         }

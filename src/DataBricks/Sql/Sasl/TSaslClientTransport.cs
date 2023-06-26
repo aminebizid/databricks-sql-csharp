@@ -19,6 +19,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Thrift;
 using Thrift.Transport;
+using Thrift.Transport.Client;
 using static DataBricks.Sql.Sasl.EndianEncoding;
 
 namespace DataBricks.Sql.Sasl
@@ -33,13 +34,13 @@ namespace DataBricks.Sql.Sasl
         private const int MessageHeaderLength = StatusBytes + PayloadLengthBytes;
 
         private readonly SaslNegotiator saslNegotiator;
-        private readonly TSocketClientTransport socket;
+        private readonly TSocketTransport socket;
         private readonly MemoryStream writeBuffer = new MemoryStream();
         private readonly TMemoryInputTransport readBuffer = new TMemoryInputTransport();
 
         private bool isOpen;
 
-        public TSaslClientTransport(TSocketClientTransport socket, string userName, string password)
+        public TSaslClientTransport(TSocketTransport socket, string userName, string password)
         {
             Configuration = new TConfiguration();
             saslNegotiator = new SaslNegotiator(new PlainMechanism(userName, password));
@@ -69,12 +70,12 @@ namespace DataBricks.Sql.Sasl
             if (!IsOpen)
             {
                 await socket.OpenAsync(cancellationToken);
-                SendSaslMessage(SaslStatus.Start, saslNegotiator.MechanismName);
-                SendSaslMessage(SaslStatus.Ok, saslNegotiator.RespondToChallenge(null));
+                await SendSaslMessageAsync(SaslStatus.Start, Encoding.UTF8.GetBytes(saslNegotiator.MechanismName), cancellationToken);
+                await SendSaslMessageAsync(SaslStatus.Ok, saslNegotiator.RespondToChallenge(null), cancellationToken);
 
                 while (true)
                 {
-                    var result = ReceiveSaslMessage();
+                    var result = await ReceiveSaslMessageAsync(cancellationToken);
                     if (result.Status == SaslStatus.Complete)
                     {
                         isOpen = true;
@@ -82,7 +83,7 @@ namespace DataBricks.Sql.Sasl
                     }
                     else if (result.Status == SaslStatus.Ok)
                     {
-                        SendSaslMessage(SaslStatus.Ok, saslNegotiator.RespondToChallenge(Encoding.UTF8.GetBytes(result.Body)));
+                        await SendSaslMessageAsync(SaslStatus.Ok, saslNegotiator.RespondToChallenge(Encoding.UTF8.GetBytes(result.Body)), cancellationToken);
                     }
                     else
                     {
@@ -98,47 +99,44 @@ namespace DataBricks.Sql.Sasl
             socket.Close();
             isOpen = false;
         }
+        
 
-        public void SendSaslMessage(SaslStatus status, string body)
-        {
-            SendSaslMessage(status, Encoding.UTF8.GetBytes(body));
-        }
-
-        public void SendSaslMessage(SaslStatus status, byte[] body)
+        public async Task SendSaslMessageAsync(SaslStatus status, byte[] body,
+            CancellationToken cancellationToken = default)
         {
             var header = new byte[MessageHeaderLength];
             header[0] = (byte)status;
             EncodeBigEndian(body.Length, header, StatusBytes);
-            socket.WriteAsync(header).Wait();
-            socket.WriteAsync(body).Wait();
-            socket.FlushAsync().Wait();
+            await socket.WriteAsync(header, cancellationToken);
+            await socket.WriteAsync(body, cancellationToken);
+            await socket.FlushAsync(cancellationToken);
         }
 
-        public SaslMessage ReceiveSaslMessage()
+        public async Task<SaslMessage> ReceiveSaslMessageAsync(CancellationToken cancellationToken = default)
         {
             var result = new SaslMessage();
             var header = new byte[MessageHeaderLength];
-            socket.ReadAllAsync(header, 0, header.Length).Wait();
+            await socket.ReadAllAsync(header, 0, header.Length, cancellationToken);
             result.Status = (SaslStatus)header[0];
             byte[] body = new byte[DecodeBigEndianInt32(header, StatusBytes)];
-            socket.ReadAllAsync(body, 0, body.Length).Wait();
+            await socket.ReadAllAsync(body, 0, body.Length, cancellationToken);
 
             result.Body = Encoding.UTF8.GetString(body);
             return result;
         }
 
-        public int ReadLength()
+        public async Task<int> ReadLengthAsync(CancellationToken cancellationToken = default)
         {
             byte[] lenBuf = new byte[4];
-            socket.ReadAllAsync(lenBuf, 0, lenBuf.Length).Wait();
+            await socket.ReadAllAsync(lenBuf, 0, lenBuf.Length, cancellationToken);
             return DecodeBigEndianInt32(lenBuf);
         }
 
-        public void WriteLength(int length)
+        public async Task WriteLengthAsync(int length, CancellationToken cancellationToken = default)
         {
             byte[] lenBuf = new byte[4];
             EncodeBigEndian(length, lenBuf);
-            socket.WriteAsync(lenBuf).Wait();
+            await socket.WriteAsync(lenBuf, cancellationToken);
         }
 
         // public override ValueTask<int> ReadAsync(byte[] buf, int off, int len)
@@ -152,19 +150,19 @@ namespace DataBricks.Sql.Sasl
             if (readLength > 0)
                 return readLength;
 
-            await ReadFrame();
+            await ReadFrameAsync(cancellationToken);
 
             return await readBuffer.ReadAsync(buffer, offset, length);
         }
 
-        private async Task ReadFrame()
+        private async Task ReadFrameAsync(CancellationToken cancellationToken = default)
         {
-            int dataLength = ReadLength();
+            int dataLength = await ReadLengthAsync(cancellationToken);
             if (dataLength < 0)
                 throw new TTransportException($"Read a negative frame size ({dataLength}).");
 
             byte[] buff = new byte[dataLength];
-            await socket.ReadAllAsync(buff, 0, dataLength);
+            await socket.ReadAllAsync(buff, 0, dataLength, cancellationToken);
             readBuffer.Reset(buff);
         }
 
@@ -185,7 +183,7 @@ namespace DataBricks.Sql.Sasl
             byte[] data = writeBuffer.ToArray();
             // Reset write buffer
             writeBuffer.SetLength(0);
-            WriteLength(data.Length);
+            await WriteLengthAsync(data.Length, cancellationToken);
             await socket.WriteAsync(data, 0, data.Length, cancellationToken);
             await socket.FlushAsync(cancellationToken);
         }
