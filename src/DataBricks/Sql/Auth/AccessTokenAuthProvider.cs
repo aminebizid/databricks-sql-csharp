@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace DataBricks.Sql.Auth
 {
@@ -14,6 +16,7 @@ namespace DataBricks.Sql.Auth
         public override void AddHeaders(Dictionary<string, string> headers)
         {
             headers["Authorization"] = _authorizationHeaderValue;
+
         }
     }
 }

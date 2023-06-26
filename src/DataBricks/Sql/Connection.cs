@@ -13,7 +13,7 @@ namespace DataBricks.Sql
         public bool IsOpen;
         private readonly string _hostname;
         private readonly Dictionary<string, object> _customParameters;
-        private readonly AccessTokenAuthProvider _authProvider;
+        private readonly AuthProvider _authProvider;
         private ThriftBackend _thriftBackend;
         public TSessionHandle SessionHandler;
         private readonly string _httpPath;
@@ -21,15 +21,19 @@ namespace DataBricks.Sql
         private readonly string _catalog;
         private readonly string _schema;
         private readonly Dictionary<string, object> _sessionConfiguration;
+        private readonly string _port;
+        private readonly string _scheme;
 
         public Connection(
             string hostname,
             string httpPath,
-            string accessToken,
+            AuthProvider authProvider,
             Dictionary<string, string> httpHeaders = null,
             Dictionary<string, object> sessionConfiguration = null,
             string catalog = null,
             string schema = null,
+            string port = "443",
+            string scheme = "https",
             Dictionary<string, object> customParameters = null)
         {
 
@@ -40,9 +44,10 @@ namespace DataBricks.Sql
              _schema = schema;
              _sessionConfiguration = sessionConfiguration;
              _customParameters = customParameters ?? new Dictionary<string, object>();
-             _customParameters["access_token"] = accessToken;
-             var port = _customParameters.ContainsKey("port") ? (int)customParameters["port"] : 443;
-             _authProvider = new AccessTokenAuthProvider(accessToken);
+             _port = port;
+             _scheme = scheme;
+             
+             _authProvider = authProvider;
 
              var useragentHeader = !_customParameters.ContainsKey("_user_agent_entry") ? UserAgent : $"{UserAgent} ({_customParameters["_user_agent_entry"]})";
 
@@ -51,9 +56,6 @@ namespace DataBricks.Sql
              if (httpHeaders == null) return;
              foreach (var (key, value) in httpHeaders)
                  _headers[key] = value;
-             
-            
-
         }
 
         public async Task OpenAsync(CancellationToken cancellationToken = default)
@@ -63,6 +65,8 @@ namespace DataBricks.Sql
                 _httpPath,
                 _headers,
                 _authProvider,
+                port:_port,
+                scheme:_scheme,
                 customParameters: _customParameters
             );
             SessionHandler = await _thriftBackend.OpenSessionAsync(_sessionConfiguration, _catalog, _schema, cancellationToken);

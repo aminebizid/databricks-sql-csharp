@@ -6,6 +6,7 @@ using DataBricks.Sql.Auth;
 using DataBricks.Sql.Auth.ThriftHttpClient;
 using DataBricks.Sql.ThriftApi.TCLService.TTypes;
 using Thrift.Protocol;
+using Thrift.Transport.Client;
 
 namespace DataBricks.Sql
 {
@@ -24,6 +25,7 @@ namespace DataBricks.Sql
         private readonly Dictionary<string,object> _customParameters;
         private readonly Dictionary<string, double> _retryParameters = new ();
         private readonly THttpClient _transport;
+        private TSocketTransport _socketTransport;
         private readonly TCLIService.Client _client;
 
         public ThriftBackend(
@@ -31,12 +33,12 @@ namespace DataBricks.Sql
             string httpPath,
             Dictionary<string, string> headers,
             AuthProvider authProvider,
-            int port = 443,
+            string port = "443",
+            string scheme = "https",
             Dictionary<string, object> customParameters = null)
         {
-            var uri = new Uri($"https://{hostname}:{port}/{httpPath}");
+            var uri = new Uri($"{scheme}://{hostname}:{port}/{httpPath}");
             _customParameters = customParameters;
-            
             _transport = new THttpClient(authProvider, uri, headers);
             _transport.SetCustomHeaders(headers);
             var protocol = new TBinaryProtocol(_transport);
