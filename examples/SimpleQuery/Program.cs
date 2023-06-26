@@ -11,23 +11,19 @@ namespace SimpleQuery
     {
         private static async Task Main(string[] args)
         {
-            if (args.Length != 4)
+            if (args.Length != 1)
             {
                 Console.WriteLine("Usage SimpleQuery hostname httpPath accessToken");
                 return;
             }
             
             var hostname = args[0];
-            var httpPath =  args[1];
-            var accessToken =  args[2];
-            var port = args.Length >= 4? args[3]: "443";
+            // var accessToken =  args[2];
+            // var port = args.Length >= 4? args[3]: "443";
             var scheme = "http"; 
             
             
-
-            hostname = "a5d1e4b9f80e14738860ad21b56fecaa-7975505bc23c66a8.elb.eu-west-1.amazonaws.com";
-            // hostname = "localhost";
-            httpPath = "cliservice";
+            var httpPath = "cliservice";
 
             var connection = new Connection(
                 hostname,
