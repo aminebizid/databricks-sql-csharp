@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using DataBricks.Sql.Auth;
+using DataBricks.Sql.Auth.ThriftHttpClient;
 using DataBricks.Sql.ThriftApi.TCLService.TTypes;
 using DataBricks.Sql.ThriftConnection;
 using Thrift.Protocol;
@@ -34,20 +35,32 @@ namespace DataBricks.Sql
             AuthProvider authProvider,
             string port = "443",
             string scheme = "https",
+            string login = "",
+            string password = "",
             Dictionary<string, object> customParameters = null)
         {
 
-            var thriftConnectionFactory = new SaslConnectionFactory(hostname, 10000, "amine", "bizid");
-            _transport = thriftConnectionFactory.CreateTransport();
-            var protocol = new TBinaryProtocol(_transport);
-            
-            
-            
-            // var uri = new Uri($"{scheme}://{hostname}:{port}/{httpPath}");
-            // _customParameters = customParameters;
-            // _transport = new THttpClient(authProvider, uri, headers);
-            // _transport.SetCustomHeaders(headers);
-            // var protocol = new TBinaryProtocol(_transport);
+            TBinaryProtocol protocol;
+
+            switch (scheme)
+            {
+                case "binary":
+                    var thriftConnectionFactory = new SaslConnectionFactory(hostname, Convert.ToInt32(port), login, password);
+                    _transport = thriftConnectionFactory.CreateTransport();
+                    protocol = new TBinaryProtocol(_transport);
+                    break;
+                case "http":
+                case "https":
+                    var uri = new Uri($"{scheme}://{hostname}:{port}/{httpPath}");
+                    _customParameters = customParameters;
+                    _transport = new THttpClient(authProvider, uri, headers);
+                    ((THttpClient)_transport).SetCustomHeaders(headers); 
+                    protocol = new TBinaryProtocol(_transport);
+                    break;
+                default:
+                    throw new Exception($"Unknown scheme '{scheme}'. Accepted values 'http' or 'binary'");
+            }
+
             _client = new TCLIService.Client(protocol, protocol);
         }
 
@@ -86,15 +99,19 @@ namespace DataBricks.Sql
         public async Task CloseSessionAsync(TSessionHandle sessionHandle, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            
+           
 
             var closeSessionRequest = new TCloseSessionReq{SessionHandle = sessionHandle};
             
             try
             {
                 await MakeRequestAsync(_client.CloseSession, closeSessionRequest, cancellationToken);
+
             }
             finally
             {
+               
                 _transport.Close();
             }
         }

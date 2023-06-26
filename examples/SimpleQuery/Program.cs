@@ -11,26 +11,29 @@ namespace SimpleQuery
     {
         private static async Task Main(string[] args)
         {
-            if (args.Length != 1)
+            if (args.Length != 4)
             {
-                Console.WriteLine("Usage SimpleQuery hostname httpPath accessToken");
+                Console.WriteLine("Usage SimpleQuery hostname port login password");
                 return;
             }
             
             var hostname = args[0];
-            // var accessToken =  args[2];
-            // var port = args.Length >= 4? args[3]: "443";
-            var scheme = "http"; 
+            var port = args[1];
+            var login  = args[2];
+            var password  = args[3];
+            var scheme = "binary"; 
             
             
             var httpPath = "cliservice";
 
             var connection = new Connection(
                 hostname,
-                httpPath,
-                new BasicAuthProvider("amine", "bizid"),
-                port: "10001",
-                scheme:scheme);
+                new BasicAuthProvider(login, password),
+                port: port,
+                scheme:scheme,
+                httpPath:  httpPath,
+                login: login,
+                password: password);
             
             var cancellationToken = new CancellationToken();
 
@@ -71,7 +74,7 @@ namespace SimpleQuery
 
                 await foreach (var row in cursor.GetRowAsync(cancellationToken: cancellationToken))
                 {
-                    Console.WriteLine($"{row[0]} {row[1]} {row[2]}");
+                    // Console.WriteLine($"{row[0]} {row[1]} {row[2]}");
                     count++;
                 }
 
@@ -101,7 +104,7 @@ namespace SimpleQuery
 
                 await foreach (var row in cursor.GetRowAsync(cancellationToken: cancellationToken))
                 {
-                    Console.WriteLine($"{row[0]} {row[1]} {row[2]}");
+                    // Console.WriteLine($"{row[0]} {row[1]} {row[2]}");
                     count++;
                 }
 

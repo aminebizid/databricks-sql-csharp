@@ -23,17 +23,21 @@ namespace DataBricks.Sql
         private readonly Dictionary<string, object> _sessionConfiguration;
         private readonly string _port;
         private readonly string _scheme;
+        private readonly string _login;
+        private readonly string _password;
 
         public Connection(
             string hostname,
-            string httpPath,
-            AuthProvider authProvider,
+            AuthProvider authProvider = null,
             Dictionary<string, string> httpHeaders = null,
             Dictionary<string, object> sessionConfiguration = null,
             string catalog = null,
             string schema = null,
+            string httpPath = null,
             string port = "443",
             string scheme = "https",
+            string login = null,
+            string password = null,
             Dictionary<string, object> customParameters = null)
         {
 
@@ -46,7 +50,8 @@ namespace DataBricks.Sql
              _customParameters = customParameters ?? new Dictionary<string, object>();
              _port = port;
              _scheme = scheme;
-             
+             _login = login;
+             _password = password;
              _authProvider = authProvider;
 
              var useragentHeader = !_customParameters.ContainsKey("_user_agent_entry") ? UserAgent : $"{UserAgent} ({_customParameters["_user_agent_entry"]})";
@@ -67,6 +72,8 @@ namespace DataBricks.Sql
                 _authProvider,
                 port:_port,
                 scheme:_scheme,
+                _login,
+                _password,
                 customParameters: _customParameters
             );
             SessionHandler = await _thriftBackend.OpenSessionAsync(_sessionConfiguration, _catalog, _schema, cancellationToken);
